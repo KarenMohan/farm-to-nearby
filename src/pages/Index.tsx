@@ -1,17 +1,23 @@
-
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { MapPin, Leaf, Users, Star } from "lucide-react";
 import FarmerDashboard from "@/components/FarmerDashboard";
 import BuyerDashboard from "@/components/BuyerDashboard";
 import AuthPage from "@/components/AuthPage";
 import { useAuth } from "@/hooks/useAuth";
+import { useToast } from "@/hooks/use-toast";
 
 const Index = () => {
   const [userRole, setUserRole] = useState<'farmer' | 'buyer' | null>(null);
   const [showAuth, setShowAuth] = useState(false);
+  const [selectedLocation, setSelectedLocation] = useState<string>('');
+  const [pincode, setPincode] = useState<string>('');
+  const [useCurrentLocation, setUseCurrentLocation] = useState(false);
   const { user, userProfile, loading, signOut } = useAuth();
+  const { toast } = useToast();
 
   // Show loading state
   if (loading) {
@@ -55,6 +61,51 @@ const Index = () => {
   if (userRole === 'buyer') {
     return <BuyerDashboard onBack={() => setUserRole(null)} />;
   }
+
+  const getCurrentLocation = () => {
+    if (!navigator.geolocation) {
+      toast({
+        title: "Error",
+        description: "Geolocation is not supported by this browser.",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    navigator.geolocation.getCurrentPosition(
+      (position) => {
+        setUseCurrentLocation(true);
+        setSelectedLocation(`${position.coords.latitude}, ${position.coords.longitude}`);
+        toast({
+          title: "Location Found",
+          description: "Your current location has been detected."
+        });
+      },
+      (error) => {
+        toast({
+          title: "Location Error",
+          description: "Unable to get your location. Please enter manually.",
+          variant: "destructive"
+        });
+      }
+    );
+  };
+
+  const handleLocationSubmit = () => {
+    if (!selectedLocation && !pincode) {
+      toast({
+        title: "Location Required",
+        description: "Please select your location or enter a pincode.",
+        variant: "destructive"
+      });
+      return;
+    }
+    
+    toast({
+      title: "Location Set",
+      description: `Location set to: ${selectedLocation || pincode}. You can now browse local farmers and products.`
+    });
+  };
 
   const scrollToFeatures = () => {
     const featuresSection = document.getElementById('features');
@@ -128,6 +179,70 @@ const Index = () => {
             Discover fresh, local produce directly from nearby farmers. Support your community while enjoying 
             the freshest ingredients nature has to offer.
           </p>
+
+          {/* Location Selection Card */}
+          <Card className="max-w-md mx-auto mb-8 border-2 border-agri-200">
+            <CardHeader>
+              <CardTitle className="flex items-center justify-center gap-2 text-agri-700">
+                <MapPin className="h-5 w-5" />
+                Set Your Location
+              </CardTitle>
+              <CardDescription>
+                Find farmers and fresh produce near you
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="flex justify-center">
+                <Button 
+                  onClick={getCurrentLocation}
+                  variant="outline"
+                  className="border-agri-300 text-agri-700 hover:bg-agri-50"
+                >
+                  <MapPin className="h-4 w-4 mr-2" />
+                  Use Current Location
+                </Button>
+              </div>
+              
+              <div className="text-center text-gray-500">or</div>
+              
+              <div className="space-y-3">
+                <div>
+                  <Label htmlFor="pincode">Enter PIN Code</Label>
+                  <Input
+                    id="pincode"
+                    placeholder="e.g., 110001"
+                    value={pincode}
+                    onChange={(e) => setPincode(e.target.value)}
+                    className="text-center"
+                  />
+                </div>
+                
+                <div>
+                  <Label htmlFor="location">Or Enter Location</Label>
+                  <Input
+                    id="location"
+                    placeholder="e.g., Delhi, Mumbai, Bangalore"
+                    value={selectedLocation}
+                    onChange={(e) => setSelectedLocation(e.target.value)}
+                    className="text-center"
+                  />
+                </div>
+              </div>
+
+              {useCurrentLocation && (
+                <div className="text-sm text-green-600 bg-green-50 p-2 rounded">
+                  ✓ Current location detected
+                </div>
+              )}
+
+              <Button 
+                onClick={handleLocationSubmit}
+                className="w-full bg-agri-600 hover:bg-agri-700 text-white"
+              >
+                Set Location
+              </Button>
+            </CardContent>
+          </Card>
           
           {/* Role Selection Cards */}
           <div className="grid md:grid-cols-2 gap-8 mt-12 max-w-2xl mx-auto">
