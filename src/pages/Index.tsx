@@ -2,13 +2,52 @@
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { MapPin, Leaf, Users, Star } from "lucide-react";
+import { MapPin, Leaf, Users, Star, LogOut } from "lucide-react";
 import FarmerDashboard from "@/components/FarmerDashboard";
 import BuyerDashboard from "@/components/BuyerDashboard";
+import AuthPage from "@/components/AuthPage";
+import { useAuth } from "@/hooks/useAuth";
 
 const Index = () => {
   const [userRole, setUserRole] = useState<'farmer' | 'buyer' | null>(null);
+  const [showAuth, setShowAuth] = useState(false);
+  const { user, userProfile, loading, signOut } = useAuth();
 
+  // Show loading state
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-agri-50 via-white to-earth-50 flex items-center justify-center">
+        <div className="text-center">
+          <Leaf className="h-12 w-12 text-agri-600 mx-auto mb-4 animate-pulse" />
+          <p className="text-gray-600">Loading...</p>
+        </div>
+      </div>
+    );
+  }
+
+  // If user is logged in, show appropriate dashboard
+  if (user && userProfile) {
+    if (userProfile.user_type === 'farmer') {
+      return <FarmerDashboard onBack={() => signOut()} />;
+    } else {
+      return <BuyerDashboard onBack={() => signOut()} />;
+    }
+  }
+
+  // Show auth page if requested
+  if (showAuth) {
+    return (
+      <AuthPage 
+        onBack={() => setShowAuth(false)}
+        onSuccess={(type) => {
+          setUserRole(type);
+          setShowAuth(false);
+        }}
+      />
+    );
+  }
+
+  // Show role selection for non-authenticated users
   if (userRole === 'farmer') {
     return <FarmerDashboard onBack={() => setUserRole(null)} />;
   }
@@ -16,6 +55,20 @@ const Index = () => {
   if (userRole === 'buyer') {
     return <BuyerDashboard onBack={() => setUserRole(null)} />;
   }
+
+  const scrollToFeatures = () => {
+    const featuresSection = document.getElementById('features');
+    if (featuresSection) {
+      featuresSection.scrollIntoView({ behavior: 'smooth' });
+    }
+  };
+
+  const scrollToHowItWorks = () => {
+    const howItWorksSection = document.getElementById('how-it-works');
+    if (howItWorksSection) {
+      howItWorksSection.scrollIntoView({ behavior: 'smooth' });
+    }
+  };
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-agri-50 via-white to-earth-50">
@@ -30,19 +83,34 @@ const Index = () => {
               </h1>
             </div>
             <div className="hidden md:flex items-center space-x-6 text-sm text-gray-600">
-              <span className="flex items-center gap-1">
+              <button 
+                onClick={scrollToFeatures}
+                className="flex items-center gap-1 hover:text-agri-600 transition-colors cursor-pointer"
+              >
                 <MapPin className="h-4 w-4" />
                 Location-based
-              </span>
-              <span className="flex items-center gap-1">
+              </button>
+              <button 
+                onClick={scrollToHowItWorks}
+                className="flex items-center gap-1 hover:text-agri-600 transition-colors cursor-pointer"
+              >
                 <Users className="h-4 w-4" />
                 Direct Connect
-              </span>
-              <span className="flex items-center gap-1">
+              </button>
+              <button 
+                onClick={scrollToFeatures}
+                className="flex items-center gap-1 hover:text-agri-600 transition-colors cursor-pointer"
+              >
                 <Leaf className="h-4 w-4" />
                 Local Fresh
-              </span>
+              </button>
             </div>
+            <Button 
+              onClick={() => setShowAuth(true)}
+              className="bg-agri-600 hover:bg-agri-700 text-white"
+            >
+              Sign In / Sign Up
+            </Button>
           </div>
         </div>
       </header>
@@ -113,11 +181,65 @@ const Index = () => {
               </CardContent>
             </Card>
           </div>
+
+          <div className="mt-8">
+            <Button 
+              onClick={() => setShowAuth(true)}
+              variant="outline"
+              className="border-agri-300 text-agri-700 hover:bg-agri-50"
+            >
+              Create Account with Location
+            </Button>
+          </div>
+        </div>
+      </section>
+
+      {/* How It Works Section */}
+      <section id="how-it-works" className="bg-gray-50 py-16">
+        <div className="container mx-auto px-4">
+          <div className="text-center mb-12">
+            <h3 className="text-3xl font-bold text-gray-900 mb-4">How It Works</h3>
+            <p className="text-gray-600 max-w-2xl mx-auto">
+              Simple steps to connect local farmers with buyers in your area
+            </p>
+          </div>
+
+          <div className="grid md:grid-cols-3 gap-8">
+            <div className="text-center">
+              <div className="mx-auto mb-4 p-4 bg-agri-100 rounded-full w-fit">
+                <MapPin className="h-8 w-8 text-agri-600" />
+              </div>
+              <h4 className="text-xl font-semibold mb-2">1. Set Your Location</h4>
+              <p className="text-gray-600">
+                Share your location during signup to find farmers and buyers near you.
+              </p>
+            </div>
+
+            <div className="text-center">
+              <div className="mx-auto mb-4 p-4 bg-earth-100 rounded-full w-fit">
+                <Users className="h-8 w-8 text-earth-600" />
+              </div>
+              <h4 className="text-xl font-semibold mb-2">2. Connect Directly</h4>
+              <p className="text-gray-600">
+                Browse profiles and products, then contact farmers or buyers directly.
+              </p>
+            </div>
+
+            <div className="text-center">
+              <div className="mx-auto mb-4 p-4 bg-agri-100 rounded-full w-fit">
+                <Leaf className="h-8 w-8 text-agri-600" />
+              </div>
+              <h4 className="text-xl font-semibold mb-2">3. Fresh Local Trade</h4>
+              <p className="text-gray-600">
+                Enjoy fresh produce while supporting local agriculture.
+              </p>
+            </div>
+          </div>
         </div>
       </section>
 
       {/* Features Section */}
-      <section className="bg-white py-16">
+      <section id="features" className="bg-white py-16">
         <div className="container mx-auto px-4">
           <div className="text-center mb-12">
             <h3 className="text-3xl font-bold text-gray-900 mb-4">Why Choose AgriLocal?</h3>

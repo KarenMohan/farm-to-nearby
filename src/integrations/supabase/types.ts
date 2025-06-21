@@ -9,7 +9,113 @@ export type Json =
 export type Database = {
   public: {
     Tables: {
-      [_ in never]: never
+      products: {
+        Row: {
+          available: boolean | null
+          created_at: string
+          description: string | null
+          farmer_id: string
+          harvest_date: string | null
+          id: string
+          image_url: string | null
+          name: string
+          organic: boolean | null
+          price: number
+          quantity: number
+          type: string
+          unit: string
+          updated_at: string
+        }
+        Insert: {
+          available?: boolean | null
+          created_at?: string
+          description?: string | null
+          farmer_id: string
+          harvest_date?: string | null
+          id?: string
+          image_url?: string | null
+          name: string
+          organic?: boolean | null
+          price: number
+          quantity: number
+          type: string
+          unit?: string
+          updated_at?: string
+        }
+        Update: {
+          available?: boolean | null
+          created_at?: string
+          description?: string | null
+          farmer_id?: string
+          harvest_date?: string | null
+          id?: string
+          image_url?: string | null
+          name?: string
+          organic?: boolean | null
+          price?: number
+          quantity?: number
+          type?: string
+          unit?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "products_farmer_id_fkey"
+            columns: ["farmer_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      profiles: {
+        Row: {
+          created_at: string
+          farm_description: string | null
+          farm_name: string | null
+          first_name: string | null
+          id: string
+          last_name: string | null
+          latitude: number | null
+          location_address: string | null
+          location_pin_code: string | null
+          longitude: number | null
+          phone: string | null
+          updated_at: string
+          user_type: string
+        }
+        Insert: {
+          created_at?: string
+          farm_description?: string | null
+          farm_name?: string | null
+          first_name?: string | null
+          id: string
+          last_name?: string | null
+          latitude?: number | null
+          location_address?: string | null
+          location_pin_code?: string | null
+          longitude?: number | null
+          phone?: string | null
+          updated_at?: string
+          user_type: string
+        }
+        Update: {
+          created_at?: string
+          farm_description?: string | null
+          farm_name?: string | null
+          first_name?: string | null
+          id?: string
+          last_name?: string | null
+          latitude?: number | null
+          location_address?: string | null
+          location_pin_code?: string | null
+          longitude?: number | null
+          phone?: string | null
+          updated_at?: string
+          user_type?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never

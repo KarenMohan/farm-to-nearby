@@ -1,21 +1,12 @@
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { ArrowLeft, Search, MapPin, Leaf, Star, Phone } from "lucide-react";
+import { ArrowLeft, Search, MapPin, Leaf, Star, Phone, LogOut } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
-
-interface Farmer {
-  id: string;
-  name: string;
-  farmName: string;
-  location: string;
-  distance: number;
-  rating: number;
-  products: Product[];
-}
+import { supabase } from "@/integrations/supabase/client";
 
 interface Product {
   id: string;
@@ -26,10 +17,14 @@ interface Product {
   unit: string;
   description: string;
   organic: boolean;
-  harvestDate: string;
-  farmerName: string;
-  farmName: string;
-  farmerContact: string;
+  harvest_date: string;
+  farmer_id: string;
+  profiles?: {
+    first_name: string;
+    last_name: string;
+    farm_name: string;
+    phone: string;
+  };
 }
 
 interface BuyerDashboardProps {
@@ -39,118 +34,84 @@ interface BuyerDashboardProps {
 const BuyerDashboard = ({ onBack }: BuyerDashboardProps) => {
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedType, setSelectedType] = useState("all");
-  const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
+  const [products, setProducts] = useState<Product[]>([]);
+  const [loading, setLoading] = useState(true);
 
   const { toast } = useToast();
 
-  const mockProducts: Product[] = [
-    {
-      id: '1',
-      name: 'Fresh Tomatoes',
-      type: 'Vegetables',
-      price: 45,
-      quantity: 50,
-      unit: 'kg',
-      description: 'Vine-ripened organic tomatoes, perfect for salads and cooking',
-      organic: true,
-      harvestDate: '2024-01-15',
-      farmerName: 'Rajesh Sharma',
-      farmName: 'Sharma Organic Farm',
-      farmerContact: '+91 9876543210'
-    },
-    {
-      id: '2',
-      name: 'Green Spinach',
-      type: 'Leafy Greens',
-      price: 35,
-      quantity: 25,
-      unit: 'kg',
-      description: 'Fresh baby spinach leaves, rich in iron and vitamins',
-      organic: true,
-      harvestDate: '2024-01-16',
-      farmerName: 'Rajesh Sharma',
-      farmName: 'Sharma Organic Farm',
-      farmerContact: '+91 9876543210'
-    },
-    {
-      id: '3',
-      name: 'Red Apples',
-      type: 'Fruits',
-      price: 120,
-      quantity: 30,
-      unit: 'kg',
-      description: 'Crisp and sweet red apples, freshly harvested from our orchard',
-      organic: false,
-      harvestDate: '2024-01-10',
-      farmerName: 'Priya Patel',
-      farmName: 'Hillside Orchard',
-      farmerContact: '+91 9876543211'
-    },
-    {
-      id: '4',
-      name: 'Fresh Milk',
-      type: 'Dairy',
-      price: 60,
-      quantity: 20,
-      unit: 'liters',
-      description: 'Fresh cow milk from grass-fed cows, delivered daily',
-      organic: true,
-      harvestDate: '2024-01-17',
-      farmerName: 'Mukesh Kumar',
-      farmName: 'Kumar Dairy Farm',
-      farmerContact: '+91 9876543212'
-    },
-    {
-      id: '5',
-      name: 'Fresh Mint',
-      type: 'Herbs',
-      price: 25,
-      quantity: 5,
-      unit: 'kg',
-      description: 'Aromatic fresh mint leaves, perfect for teas and cooking',
-      organic: true,
-      harvestDate: '2024-01-16',
-      farmerName: 'Sunita Devi',
-      farmName: 'Herb Garden',
-      farmerContact: '+91 9876543213'
-    },
-    {
-      id: '6',
-      name: 'Organic Carrots',
-      type: 'Vegetables',
-      price: 55,
-      quantity: 40,
-      unit: 'kg',
-      description: 'Sweet and crunchy organic carrots, rich in beta-carotene',
-      organic: true,
-      harvestDate: '2024-01-14',
-      farmerName: 'Ramesh Gupta',
-      farmName: 'Gupta Vegetable Farm',
-      farmerContact: '+91 9876543214'
-    }
-  ];
+  useEffect(() => {
+    fetchProducts();
+  }, []);
 
-  const filteredProducts = mockProducts.filter((product) => {
+  const fetchProducts = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('products')
+        .select(`
+          *,
+          profiles:farmer_id (
+            first_name,
+            last_name,
+            farm_name,
+            phone
+          )
+        `)
+        .eq('available', true);
+
+      if (error) throw error;
+      setProducts(data || []);
+    } catch (error) {
+      console.error('Error fetching products:', error);
+      toast({
+        title: "Error",
+        description: "Failed to load products",
+        variant: "destructive"
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const filteredProducts = products.filter((product) => {
+    const farmerName = product.profiles ? `${product.profiles.first_name} ${product.profiles.last_name}` : '';
+    const farmName = product.profiles?.farm_name || '';
+    
     const matchesSearch = product.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         product.farmerName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         product.farmName.toLowerCase().includes(searchTerm.toLowerCase());
+                         farmerName.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                         farmName.toLowerCase().includes(searchTerm.toLowerCase());
     const matchesType = selectedType === "all" || product.type === selectedType;
     return matchesSearch && matchesType;
   });
 
   const handleContactFarmer = (product: Product) => {
+    const farmerName = product.profiles ? `${product.profiles.first_name} ${product.profiles.last_name}` : 'Farmer';
+    const phone = product.profiles?.phone || 'Contact not available';
+    
     toast({
       title: "Contact Information",
-      description: `Contact ${product.farmerName} at ${product.farmerContact}`,
+      description: `Contact ${farmerName} at ${phone}`,
     });
   };
 
   const handleRequestOrder = (product: Product) => {
+    const farmerName = product.profiles ? `${product.profiles.first_name} ${product.profiles.last_name}` : 'the farmer';
+    
     toast({
       title: "Order Request Sent!",
-      description: `Your order request for ${product.name} has been sent to ${product.farmerName}.`,
+      description: `Your order request for ${product.name} has been sent to ${farmerName}.`,
     });
   };
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-earth-50 via-white to-agri-50 flex items-center justify-center">
+        <div className="text-center">
+          <Search className="h-12 w-12 text-earth-600 mx-auto mb-4 animate-pulse" />
+          <p className="text-gray-600">Loading products...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-earth-50 via-white to-agri-50">
@@ -165,8 +126,8 @@ const BuyerDashboard = ({ onBack }: BuyerDashboardProps) => {
                 onClick={onBack}
                 className="text-earth-600 hover:text-earth-700"
               >
-                <ArrowLeft className="h-4 w-4 mr-1" />
-                Back
+                <LogOut className="h-4 w-4 mr-1" />
+                Sign Out
               </Button>
               <div className="flex items-center space-x-2">
                 <Search className="h-6 w-6 text-earth-600" />
@@ -226,70 +187,75 @@ const BuyerDashboard = ({ onBack }: BuyerDashboardProps) => {
 
         {/* Products Grid */}
         <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {filteredProducts.map((product) => (
-            <Card key={product.id} className="hover-lift border border-earth-200 overflow-hidden">
-              <CardHeader className="pb-3">
-                <div className="flex items-start justify-between">
-                  <div className="flex-1">
-                    <CardTitle className="text-lg text-earth-700 mb-1">{product.name}</CardTitle>
-                    <CardDescription className="text-sm text-gray-600">
-                      by {product.farmerName}
-                    </CardDescription>
-                    <CardDescription className="text-xs text-earth-600 font-medium">
-                      {product.farmName}
-                    </CardDescription>
-                  </div>
-                  <div className="flex flex-col items-end space-y-1">
-                    {product.organic && (
-                      <span className="bg-agri-100 text-agri-700 px-2 py-1 rounded-full text-xs font-medium">
-                        Organic
+          {filteredProducts.map((product) => {
+            const farmerName = product.profiles ? `${product.profiles.first_name} ${product.profiles.last_name}` : 'Unknown Farmer';
+            const farmName = product.profiles?.farm_name || 'Unknown Farm';
+            
+            return (
+              <Card key={product.id} className="hover-lift border border-earth-200 overflow-hidden">
+                <CardHeader className="pb-3">
+                  <div className="flex items-start justify-between">
+                    <div className="flex-1">
+                      <CardTitle className="text-lg text-earth-700 mb-1">{product.name}</CardTitle>
+                      <CardDescription className="text-sm text-gray-600">
+                        by {farmerName}
+                      </CardDescription>
+                      <CardDescription className="text-xs text-earth-600 font-medium">
+                        {farmName}
+                      </CardDescription>
+                    </div>
+                    <div className="flex flex-col items-end space-y-1">
+                      {product.organic && (
+                        <span className="bg-agri-100 text-agri-700 px-2 py-1 rounded-full text-xs font-medium">
+                          Organic
+                        </span>
+                      )}
+                      <span className="bg-earth-100 text-earth-700 px-2 py-1 rounded-full text-xs">
+                        {product.type}
                       </span>
-                    )}
-                    <span className="bg-earth-100 text-earth-700 px-2 py-1 rounded-full text-xs">
-                      {product.type}
-                    </span>
+                    </div>
                   </div>
-                </div>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="space-y-2">
-                  <div className="flex justify-between items-center">
-                    <span className="text-sm text-gray-600">Price:</span>
-                    <span className="font-bold text-xl text-earth-700">₹{product.price}/{product.unit}</span>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div className="space-y-2">
+                    <div className="flex justify-between items-center">
+                      <span className="text-sm text-gray-600">Price:</span>
+                      <span className="font-bold text-xl text-earth-700">₹{product.price}/{product.unit}</span>
+                    </div>
+                    <div className="flex justify-between items-center">
+                      <span className="text-sm text-gray-600">Available:</span>
+                      <span className="font-medium text-agri-600">{product.quantity} {product.unit}</span>
+                    </div>
+                    <div className="flex justify-between items-center">
+                      <span className="text-sm text-gray-600">Harvested:</span>
+                      <span className="text-sm">{new Date(product.harvest_date).toLocaleDateString()}</span>
+                    </div>
                   </div>
-                  <div className="flex justify-between items-center">
-                    <span className="text-sm text-gray-600">Available:</span>
-                    <span className="font-medium text-agri-600">{product.quantity} {product.unit}</span>
-                  </div>
-                  <div className="flex justify-between items-center">
-                    <span className="text-sm text-gray-600">Harvested:</span>
-                    <span className="text-sm">{new Date(product.harvestDate).toLocaleDateString()}</span>
-                  </div>
-                </div>
 
-                <p className="text-sm text-gray-600">{product.description}</p>
+                  <p className="text-sm text-gray-600">{product.description}</p>
 
-                <div className="grid grid-cols-2 gap-2 pt-2">
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => handleContactFarmer(product)}
-                    className="border-earth-300 text-earth-700 hover:bg-earth-50"
-                  >
-                    <Phone className="h-3 w-3 mr-1" />
-                    Contact
-                  </Button>
-                  <Button
-                    size="sm"
-                    onClick={() => handleRequestOrder(product)}
-                    className="bg-earth-600 hover:bg-earth-700 text-white"
-                  >
-                    Order
-                  </Button>
-                </div>
-              </CardContent>
-            </Card>
-          ))}
+                  <div className="grid grid-cols-2 gap-2 pt-2">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => handleContactFarmer(product)}
+                      className="border-earth-300 text-earth-700 hover:bg-earth-50"
+                    >
+                      <Phone className="h-3 w-3 mr-1" />
+                      Contact
+                    </Button>
+                    <Button
+                      size="sm"
+                      onClick={() => handleRequestOrder(product)}
+                      className="bg-earth-600 hover:bg-earth-700 text-white"
+                    >
+                      Order
+                    </Button>
+                  </div>
+                </CardContent>
+              </Card>
+            );
+          })}
         </div>
 
         {filteredProducts.length === 0 && (
