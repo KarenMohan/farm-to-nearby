@@ -6,7 +6,6 @@ import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { ArrowLeft, Search, MapPin, Leaf, Star, Phone, LogOut } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
-import { supabase } from "@/integrations/supabase/client";
 
 interface Product {
   id: string;
@@ -19,11 +18,14 @@ interface Product {
   organic: boolean;
   harvest_date: string;
   farmer_id: string;
+  image_url: string;
   profiles?: {
     first_name: string;
     last_name: string;
     farm_name: string;
     phone: string;
+    location_address: string;
+    farmer_photo: string;
   };
 }
 
@@ -39,38 +41,143 @@ const BuyerDashboard = ({ onBack }: BuyerDashboardProps) => {
 
   const { toast } = useToast();
 
-  useEffect(() => {
-    fetchProducts();
-  }, []);
-
-  const fetchProducts = async () => {
-    try {
-      const { data, error } = await supabase
-        .from('products')
-        .select(`
-          *,
-          profiles:farmer_id (
-            first_name,
-            last_name,
-            farm_name,
-            phone
-          )
-        `)
-        .eq('available', true);
-
-      if (error) throw error;
-      setProducts(data || []);
-    } catch (error) {
-      console.error('Error fetching products:', error);
-      toast({
-        title: "Error",
-        description: "Failed to load products",
-        variant: "destructive"
-      });
-    } finally {
-      setLoading(false);
+  // Hardcoded farmer data with photos and products
+  const mockProducts: Product[] = [
+    {
+      id: "1",
+      name: "Fresh Tomatoes",
+      type: "Vegetables",
+      price: 40,
+      quantity: 50,
+      unit: "kg",
+      description: "Fresh, juicy tomatoes grown organically in our farm. Perfect for cooking and salads.",
+      organic: true,
+      harvest_date: "2024-01-15",
+      farmer_id: "farmer1",
+      image_url: "https://images.unsplash.com/photo-1592841200221-a6898f307baa?w=400",
+      profiles: {
+        first_name: "Raj",
+        last_name: "Patel",
+        farm_name: "Green Valley Farm",
+        phone: "+91 9876543210",
+        location_address: "Village Kothrud, Pune, Maharashtra 411038",
+        farmer_photo: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150&h=150&fit=crop&crop=face"
+      }
+    },
+    {
+      id: "2",
+      name: "Organic Spinach",
+      type: "Leafy Greens",
+      price: 30,
+      quantity: 25,
+      unit: "kg",
+      description: "Fresh spinach leaves, rich in iron and vitamins. Harvested this morning.",
+      organic: true,
+      harvest_date: "2024-01-16",
+      farmer_id: "farmer1",
+      image_url: "https://images.unsplash.com/photo-1576045057995-568f588f82fb?w=400",
+      profiles: {
+        first_name: "Raj",
+        last_name: "Patel",
+        farm_name: "Green Valley Farm",
+        phone: "+91 9876543210",
+        location_address: "Village Kothrud, Pune, Maharashtra 411038",
+        farmer_photo: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150&h=150&fit=crop&crop=face"
+      }
+    },
+    {
+      id: "3",
+      name: "Fresh Carrots",
+      type: "Vegetables",
+      price: 35,
+      quantity: 40,
+      unit: "kg",
+      description: "Sweet and crunchy carrots, perfect for cooking and juicing.",
+      organic: false,
+      harvest_date: "2024-01-14",
+      farmer_id: "farmer2",
+      image_url: "https://images.unsplash.com/photo-1445282768818-728615cc910a?w=400",
+      profiles: {
+        first_name: "Priya",
+        last_name: "Sharma",
+        farm_name: "Sunrise Organic Farm",
+        phone: "+91 9123456789",
+        location_address: "Wakad, Pune, Maharashtra 411057",
+        farmer_photo: "https://images.unsplash.com/photo-1494790108755-2616b612b77c?w=150&h=150&fit=crop&crop=face"
+      }
+    },
+    {
+      id: "4",
+      name: "Farm Fresh Apples",
+      type: "Fruits",
+      price: 120,
+      quantity: 30,
+      unit: "kg",
+      description: "Crisp and sweet apples, grown in our mountain orchard.",
+      organic: true,
+      harvest_date: "2024-01-10",
+      farmer_id: "farmer3",
+      image_url: "https://images.unsplash.com/photo-1560806887-1e4cd0b6cbd6?w=400",
+      profiles: {
+        first_name: "Amit",
+        last_name: "Singh",
+        farm_name: "Mountain Fresh Orchards",
+        phone: "+91 9988776655",
+        location_address: "Lonavala, Pune, Maharashtra 410401",
+        farmer_photo: "https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=150&h=150&fit=crop&crop=face"
+      }
+    },
+    {
+      id: "5",
+      name: "Fresh Basil",
+      type: "Herbs",
+      price: 80,
+      quantity: 10,
+      unit: "kg",
+      description: "Aromatic fresh basil leaves, perfect for cooking and garnishing.",
+      organic: true,
+      harvest_date: "2024-01-16",
+      farmer_id: "farmer2",
+      image_url: "https://images.unsplash.com/photo-1618160702438-9b02ab6515c9?w=400",
+      profiles: {
+        first_name: "Priya",
+        last_name: "Sharma",
+        farm_name: "Sunrise Organic Farm",
+        phone: "+91 9123456789",
+        location_address: "Wakad, Pune, Maharashtra 411057",
+        farmer_photo: "https://images.unsplash.com/photo-1494790108755-2616b612b77c?w=150&h=150&fit=crop&crop=face"
+      }
+    },
+    {
+      id: "6",
+      name: "Fresh Milk",
+      type: "Dairy",
+      price: 60,
+      quantity: 20,
+      unit: "liters",
+      description: "Pure, fresh cow milk from grass-fed cows. Delivered daily.",
+      organic: false,
+      harvest_date: "2024-01-16",
+      farmer_id: "farmer4",
+      image_url: "https://images.unsplash.com/photo-1550583724-b2692b85b150?w=400",
+      profiles: {
+        first_name: "Suresh",
+        last_name: "Kumar",
+        farm_name: "Happy Cow Dairy",
+        phone: "+91 9567834012",
+        location_address: "Baramati, Pune, Maharashtra 413102",
+        farmer_photo: "https://images.unsplash.com/photo-1560250097-0b93528c311a?w=150&h=150&fit=crop&crop=face"
+      }
     }
-  };
+  ];
+
+  useEffect(() => {
+    // Simulate loading time
+    setTimeout(() => {
+      setProducts(mockProducts);
+      setLoading(false);
+    }, 1000);
+  }, []);
 
   const filteredProducts = products.filter((product) => {
     const farmerName = product.profiles ? `${product.profiles.first_name} ${product.profiles.last_name}` : '';
@@ -194,22 +301,40 @@ const BuyerDashboard = ({ onBack }: BuyerDashboardProps) => {
             return (
               <Card key={product.id} className="hover-lift border border-earth-200 overflow-hidden">
                 <CardHeader className="pb-3">
+                  {/* Farmer Photo and Info */}
+                  <div className="flex items-center space-x-3 mb-3">
+                    <img
+                      src={product.profiles?.farmer_photo}
+                      alt={farmerName}
+                      className="w-12 h-12 rounded-full object-cover"
+                    />
+                    <div className="flex-1">
+                      <p className="font-medium text-sm text-gray-900">{farmerName}</p>
+                      <p className="text-xs text-earth-600 font-medium">{farmName}</p>
+                      <div className="flex items-center text-xs text-gray-500 mt-1">
+                        <MapPin className="h-3 w-3 mr-1" />
+                        <span className="truncate">{product.profiles?.location_address}</span>
+                      </div>
+                    </div>
+                  </div>
+                  
+                  {/* Product Image */}
+                  <div className="relative h-32 mb-3">
+                    <img
+                      src={product.image_url}
+                      alt={product.name}
+                      className="w-full h-full object-cover rounded-md"
+                    />
+                    {product.organic && (
+                      <span className="absolute top-2 right-2 bg-agri-100 text-agri-700 px-2 py-1 rounded-full text-xs font-medium">
+                        Organic
+                      </span>
+                    )}
+                  </div>
+                  
                   <div className="flex items-start justify-between">
                     <div className="flex-1">
                       <CardTitle className="text-lg text-earth-700 mb-1">{product.name}</CardTitle>
-                      <CardDescription className="text-sm text-gray-600">
-                        by {farmerName}
-                      </CardDescription>
-                      <CardDescription className="text-xs text-earth-600 font-medium">
-                        {farmName}
-                      </CardDescription>
-                    </div>
-                    <div className="flex flex-col items-end space-y-1">
-                      {product.organic && (
-                        <span className="bg-agri-100 text-agri-700 px-2 py-1 rounded-full text-xs font-medium">
-                          Organic
-                        </span>
-                      )}
                       <span className="bg-earth-100 text-earth-700 px-2 py-1 rounded-full text-xs">
                         {product.type}
                       </span>
