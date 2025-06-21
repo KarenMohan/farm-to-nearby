@@ -93,7 +93,8 @@ const AuthPage = ({ onBack, onSuccess }: AuthPageProps) => {
           .eq('id', data.user.id)
           .single();
 
-        onSuccess(profile?.user_type || 'buyer');
+        const profileUserType = profile?.user_type as 'farmer' | 'buyer';
+        onSuccess(profileUserType || 'buyer');
       }
     } catch (error: any) {
       toast({
@@ -183,7 +184,7 @@ const AuthPage = ({ onBack, onSuccess }: AuthPageProps) => {
               <div className="space-y-4">
                 <div>
                   <Label htmlFor="userType">I am a</Label>
-                  <Select value={userType} onValueChange={(value: 'farmer' | 'buyer') => setUserType(value)}>
+                  <Select value={userType} onValueChange={(value) => setUserType(value as 'farmer' | 'buyer')}>
                     <SelectTrigger>
                       <SelectValue />
                     </SelectTrigger>

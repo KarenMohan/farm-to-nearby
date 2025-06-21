@@ -2,7 +2,7 @@
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { MapPin, Leaf, Users, Star, LogOut } from "lucide-react";
+import { MapPin, Leaf, Users, Star } from "lucide-react";
 import FarmerDashboard from "@/components/FarmerDashboard";
 import BuyerDashboard from "@/components/BuyerDashboard";
 import AuthPage from "@/components/AuthPage";
