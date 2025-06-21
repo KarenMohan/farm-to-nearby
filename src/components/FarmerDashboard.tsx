@@ -54,7 +54,7 @@ const FarmerDashboard = ({ onBack }: FarmerDashboardProps) => {
 
   const [newProduct, setNewProduct] = useState<Partial<Product>>({
     name: '',
-    type: '',
+    type: 'Vegetables',
     price: 0,
     quantity: 0,
     unit: 'kg',

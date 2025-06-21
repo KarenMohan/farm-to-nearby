@@ -38,7 +38,7 @@ interface BuyerDashboardProps {
 
 const BuyerDashboard = ({ onBack }: BuyerDashboardProps) => {
   const [searchTerm, setSearchTerm] = useState("");
-  const [selectedType, setSelectedType] = useState("");
+  const [selectedType, setSelectedType] = useState("all");
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
 
   const { toast } = useToast();
@@ -134,7 +134,7 @@ const BuyerDashboard = ({ onBack }: BuyerDashboardProps) => {
     const matchesSearch = product.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
                          product.farmerName.toLowerCase().includes(searchTerm.toLowerCase()) ||
                          product.farmName.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesType = selectedType === "" || product.type === selectedType;
+    const matchesType = selectedType === "all" || product.type === selectedType;
     return matchesSearch && matchesType;
   });
 
@@ -202,7 +202,7 @@ const BuyerDashboard = ({ onBack }: BuyerDashboardProps) => {
                   <SelectValue placeholder="All Categories" />
                 </SelectTrigger>
                 <SelectContent className="bg-white border border-gray-200 shadow-lg">
-                  <SelectItem value="">All Categories</SelectItem>
+                  <SelectItem value="all">All Categories</SelectItem>
                   <SelectItem value="Vegetables">Vegetables</SelectItem>
                   <SelectItem value="Fruits">Fruits</SelectItem>
                   <SelectItem value="Leafy Greens">Leafy Greens</SelectItem>
